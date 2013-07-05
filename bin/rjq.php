@@ -172,9 +172,24 @@ CLI;
     }
 
     // init the process
-    posix_setsid();
+    if (posix_setsid() === -1) {
+        echo 'ERROR : could not setsid' . "\n";
+        exit(1);
+    }
+    // in/out/error file descriptors
+    fclose(STDIN);
+    fclose(STDOUT);
+    fclose(STDERR);
+    $stdIn = fopen('/dev/null', 'r');
+    $stdOut = fopen('/dev/null', 'w');
+    $stdErr = fopen(
+        empty($config['log']) ?
+            '/dev/null': $config['log']
+        , 'a'
+    );
     chdir('/');
     umask(0);
+    // lock the child process
     if ( !empty($pid) && posix_kill($pid, 0) ) {
         echo 'RJQ is actually running (PID:' . $pid .')' . "\n";
         exit(1);
@@ -195,6 +210,7 @@ CLI;
                 'fail' => null
             )
         );
+        // outputs some log
         static public function log( $data ) {
             if (!empty(self::$conf['log']) ) {
                 $f = fopen( self::$conf['log'], 'a+');
@@ -202,33 +218,38 @@ CLI;
                 fclose($f);
             }
         }
-        // bootstrap
-        static public function init( $conf) {
+        // starts the job
+        static public function start( $conf) {
             self::$conf = $conf;
-            self::log('Starting RJQ');
-            register_shutdown_function(function() {
-                rjq::log('Shutdown requested');
-                unlink( rjq::$conf['pid'] );
-            });
-            pcntl_signal(SIGTERM, function() {
-                rjq::$run = false;
-            });
-            pcntl_signal(SIGINT, function() {
-                rjq::$run = false;
-            });
-            pcntl_signal(SIGCHLD, function() {
-                $status = null;
-                pcntl_waitpid(-1, $status);
-            });
+            self::log('Starting RJQ (PID:' . posix_getpid() . ')');
             self::$stats['start'] = time();
             // the main loop
             while(self::$run) {
                 self::$stats['memory'] = memory_get_usage(true);
                 usleep(100 * 1000); // wait 100 ms
+                pcntl_signal_dispatch();
             }
-            exit(0);
         }
     }
     // bootstrap the script
-    rjq::init( $config );
-
+    $handler = function($sig) {
+        rjq::$run = false;
+        rjq::log('Received a signal : ' . $sig);
+    };
+    register_shutdown_function(function() {
+        rjq::log('Shutdown requested');
+        unlink( rjq::$conf['pid'] );
+    });
+    pcntl_signal(SIGTSTP, SIG_IGN);
+    pcntl_signal(SIGTTOU, SIG_IGN);
+    pcntl_signal(SIGTTIN, SIG_IGN);
+    pcntl_signal(SIGHUP, SIG_IGN);
+    pcntl_signal(SIGTERM, $handler);
+    pcntl_signal(SIGINT, $handler);
+    pcntl_signal(SIGCHLD, function() {
+        $status = null;
+        rjq::log('* child signal');
+        pcntl_waitpid(-1, $status);
+    });
+    rjq::start( $config );
+    exit(0);
