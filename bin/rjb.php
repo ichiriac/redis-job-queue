@@ -11,7 +11,7 @@ Url : https://github.com/ichiriac/redis-job-queue
 
 Sample :
 
-  rjb --config=./rjb.conj
+  rjb.php --config=./rjb.conj
 
 Usage :
 
@@ -19,6 +19,7 @@ Usage :
   --status  Display the job manager status
   --start   Starts the job manager (if it's on daemon mode)
   --stop    Stops the job manager
+
 CLI;
         exit(0);
     }
@@ -76,6 +77,10 @@ CLI;
                 }
         }
         return substr($s, 0, -2);
+    }
+
+    if ( ini_get('date.timezone') == '' ) {
+        date_default_timezone_set('Europe/Paris');
     }
 
     // the status command
@@ -146,9 +151,15 @@ CLI;
 
     // handle the pid
     if (!empty($pid)) {
-        if ( posix_getpid() != $pid ) {
+        if (
+            posix_getpid() != $pid
+            && posix_kill($pid, 0) // only check the process
+        ) {
             echo 'ERROR : Process is already running (PID:' .$pid . ')' . "\n";
             exit(1);
+        } else {
+            echo 'WARNING : Process crashed (PID:' .$pid . ')' . "\n";
+            file_put_contents($config['pid'], posix_getpid());
         }
     } else {
         file_put_contents($config['pid'], posix_getpid());
@@ -158,6 +169,16 @@ CLI;
     class rjb {
         public static $conf;
         public static $run = true;
+        public static $stats = array(
+            'start' => null,
+            'memory' => null,
+            'counters' => array(
+                'workers' => null,
+                'queue' => null,
+                'done' => null,
+                'fail' => null
+            )
+        );
         static function log( $data ) {
             if (!empty(self::$conf['log']) ) {
                 $f = fopen( self::$conf['log'], 'a+');
@@ -173,12 +194,17 @@ CLI;
         static function init( $conf) {
             self::$conf = $conf;
             self::log('Starting RJB');
+            register_shutdown_function(function() {
+                rjb::log('Shutdown requested');
+                unlink( rjb::$conf['pid'] );
+            });
             pcntl_signal(SIGQUIT, array('rjb', 'close'));
+            self::$stats['start'] = time();
+            // the main loop
             while(self::$run) {
-                usleep(10 * 1000); // wait 10 ms
+                self::$stats['memory'] = memory_get_usage(true);
+                usleep(100 * 1000); // wait 100 ms
             }
-            self::log('Shutdown requested');
-            unlink( self::$conf['pid'] );
             exit(0);
         }
     }
