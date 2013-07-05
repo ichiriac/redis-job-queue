@@ -127,7 +127,7 @@ CLI;
     if ( isset($args['--stop']) ) {
         if ( !empty($pid) ) {
             echo 'Stopping ...';
-            if ( !posix_kill($pid, SIGQUIT) ) {
+            if ( !posix_kill($pid, SIGTERM) ) {
                 echo "\n" . 'WARNING : Process crashed (PID:' . $pid . ')' ;
                 unlink( $config['pid'] );
             }
@@ -210,7 +210,7 @@ CLI;
                 rjq::log('Shutdown requested');
                 unlink( rjq::$conf['pid'] );
             });
-            pcntl_signal(SIGQUIT, function() {
+            pcntl_signal(SIGTERM, function() {
                 rjq::$run = false;
             });
             pcntl_signal(SIGINT, function() {
