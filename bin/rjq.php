@@ -11,7 +11,7 @@ Url : https://github.com/ichiriac/redis-job-queue
 
 Sample :
 
-  rjb.php --config=./rjb.conj
+  ./rjq.php --config=./rjq.conj
 
 Usage :
 
@@ -25,7 +25,7 @@ CLI;
     }
     // read the configuration
     if ( !isset($args['--config']) ) {
-        $args['--config'] = 'rjb.conf';
+        $args['--config'] = 'rjq.conf';
     }
     if ( file_exists($args['--config']) ) {
         $config = file_get_contents($args['--config']);
@@ -41,12 +41,12 @@ CLI;
 
     // define some defaults values
     if ( empty($config['stats']) ) {
-        $config['stats'] = '/var/log/rjb.stats';
+        $config['stats'] = '/var/log/rjq.stats';
     }
 
     // retrieve the PID
     if ( empty($config['pid']) ) {
-        $config['pid'] = '/var/run/rjb.pid';
+        $config['pid'] = '/var/run/rjq.pid';
     }
     $pid = null;
     if ( file_exists($config['pid']) ) {
@@ -79,6 +79,7 @@ CLI;
         return substr($s, 0, -2);
     }
 
+    // setting default timezone (avoid warnings)
     if ( ini_get('date.timezone') == '' ) {
         date_default_timezone_set('Europe/Paris');
     }
@@ -86,12 +87,12 @@ CLI;
     // the status command
     if ( isset($args['--status']) ) {
         if ( empty($pid) ) {
-            echo 'The RJB service is NOT running' . "\n";
+            echo 'The RJQ service is NOT running' . "\n";
         } else {
             if ( posix_kill($pid, 0) ) { // only check the process
-                echo 'The RJB service is running ...' . "\n";
+                echo 'The RJQ service is running ...' . "\n";
             } else {
-                echo 'WARNING The RJB process seems to be crashed (use --stop)' . "\n";
+                echo 'WARNING : The RJQ process seems to be crashed (use --stop)' . "\n";
             }
             // showing statistics
             if (
@@ -144,7 +145,7 @@ CLI;
             }
             $pid = 0;
         } else {
-            echo 'RJB is not actually running' . "\n";
+            echo 'RJQ is not actually running' . "\n";
         }
         if ( !isset($args['--restart']) ) {
             exit(0);
@@ -154,15 +155,15 @@ CLI;
     // run as daemon
     if ( isset($args['--start']) ) {
         if ( !empty($pid) && posix_kill($pid, 0) ) {
-            echo 'RJB is actually running (PID:' . $pid .')' . "\n";
+            echo 'RJQ is actually running (PID:' . $pid .')' . "\n";
             exit(1);
         }
         $child = pcntl_fork();
         if ($child == -1) {
-            echo 'ERROR : Unable to start RJB' . "\n";
+            echo 'ERROR : Unable to start RJQ' . "\n";
             exit(1);
         } elseif( $child ) {
-            echo 'RJB is started (PID:' . $child . ')' . "\n";
+            echo 'RJQ is started (PID:' . $child . ')' . "\n";
             exit(0);
         }
     } else {
@@ -175,16 +176,16 @@ CLI;
     chdir('/');
     umask(0);
     if ( !empty($pid) && posix_kill($pid, 0) ) {
-        echo 'RJB is actually running (PID:' . $pid .')' . "\n";
+        echo 'RJQ is actually running (PID:' . $pid .')' . "\n";
         exit(1);
     }
     file_put_contents($config['pid'], posix_getpid());
 
     // script body
-    class rjb {
-        public static $conf;
-        public static $run = true;
-        public static $stats = array(
+    class rjq {
+        static public $conf;
+        static public $run = true;
+        static public $stats = array(
             'start' => null,
             'memory' => null,
             'counters' => array(
@@ -194,27 +195,27 @@ CLI;
                 'fail' => null
             )
         );
-        static function log( $data ) {
+        static public function log( $data ) {
             if (!empty(self::$conf['log']) ) {
                 $f = fopen( self::$conf['log'], 'a+');
                 fputs($f, date('Y-m-d H:i:s') . "\t" . $data . "\n");
                 fclose($f);
             }
         }
-        // closing the process
-        static function close() {
-            self::$run = false;
-        }
         // bootstrap
-        static function init( $conf) {
+        static public function init( $conf) {
             self::$conf = $conf;
-            self::log('Starting RJB');
+            self::log('Starting RJQ');
             register_shutdown_function(function() {
-                rjb::log('Shutdown requested');
-                unlink( rjb::$conf['pid'] );
+                rjq::log('Shutdown requested');
+                unlink( rjq::$conf['pid'] );
             });
-            pcntl_signal(SIGQUIT, array('rjb', 'close'));
-            pcntl_signal(SIGINT, array('rjb', 'close'));
+            pcntl_signal(SIGQUIT, function() {
+                rjq::$run = false;
+            });
+            pcntl_signal(SIGINT, function() {
+                rjq::$run = false;
+            });
             self::$stats['start'] = time();
             // the main loop
             while(self::$run) {
@@ -225,5 +226,5 @@ CLI;
         }
     }
     // bootstrap the script
-    rjb::init( $config );
+    rjq::init( $config );
 
