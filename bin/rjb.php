@@ -88,7 +88,11 @@ CLI;
         if ( empty($pid) ) {
             echo 'The RJB service is NOT running' . "\n";
         } else {
-            echo 'The RJB service is running ...' . "\n";
+            if ( posix_kill($pid, 0) ) { // only check the process
+                echo 'The RJB service is running ...' . "\n";
+            } else {
+                echo 'WARNING The RJB process seems to be crashed (use --stop)' . "\n";
+            }
             // showing statistics
             if (
                 !empty($config['stats'])
