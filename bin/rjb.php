@@ -122,7 +122,10 @@ CLI;
     if ( isset($args['--stop']) ) {
         if ( !empty($pid) ) {
             echo 'Stopping ...';
-            var_dump(posix_kill($pid, SIGQUIT));
+            if ( !posix_kill($pid, SIGQUIT) ) {
+                echo "\n" . 'WARNING : Process crashed (PID:' . $pid . ')' ;
+                unlink( $config['pid'] );
+            }
             for( $i = 0; $i < 20; $i++) {
                 if ( !file_exists($config['pid']) ) {
                     break;
