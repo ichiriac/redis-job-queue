@@ -165,12 +165,19 @@ CLI;
             echo 'RJB is started (PID:' . $child . ')' . "\n";
             exit(0);
         }
+    } else {
+        echo 'ERROR : Expecting a command (see --help)' . "\n";
+        exit(1);
     }
 
     // init the process
     posix_setsid();
     chdir('/');
     umask(0);
+    if ( !empty($pid) && posix_kill($pid, 0) ) {
+        echo 'RJB is actually running (PID:' . $pid .')' . "\n";
+        exit(1);
+    }
     file_put_contents($config['pid'], posix_getpid());
 
     // script body
