@@ -142,35 +142,36 @@ CLI;
                 echo 'ERROR : Unable to stop the process (PID:' . $pid . ')' ."\n";
                 exit(1);
             }
+            $pid = 0;
         } else {
             echo 'RJB is not actually running' . "\n";
+        }
+        if ( !isset($args['--restart']) ) {
+            exit(0);
         }
     }
 
     // run as daemon
     if ( isset($args['--start']) ) {
-        if ( !empty($pid) ) {
+        if ( !empty($pid) && posix_kill($pid, 0) ) {
             echo 'RJB is actually running (PID:' . $pid .')' . "\n";
             exit(1);
         }
-
-    }
-
-    // handle the pid
-    if (!empty($pid)) {
-        if (
-            posix_getpid() != $pid
-            && posix_kill($pid, 0) // only check the process
-        ) {
-            echo 'ERROR : Process is already running (PID:' .$pid . ')' . "\n";
+        $child = pcntl_fork();
+        if ($child == -1) {
+            echo 'ERROR : Unable to start RJB' . "\n";
             exit(1);
-        } else {
-            echo 'WARNING : Process crashed (PID:' .$pid . ')' . "\n";
-            file_put_contents($config['pid'], posix_getpid());
+        } elseif( $child ) {
+            echo 'RJB is started (PID:' . $child . ')' . "\n";
+            exit(0);
         }
-    } else {
-        file_put_contents($config['pid'], posix_getpid());
     }
+
+    // init the process
+    posix_setsid();
+    chdir('/');
+    umask(0);
+    file_put_contents($config['pid'], posix_getpid());
 
     // script body
     class rjb {
@@ -206,6 +207,7 @@ CLI;
                 unlink( rjb::$conf['pid'] );
             });
             pcntl_signal(SIGQUIT, array('rjb', 'close'));
+            pcntl_signal(SIGINT, array('rjb', 'close'));
             self::$stats['start'] = time();
             // the main loop
             while(self::$run) {
