@@ -216,6 +216,10 @@ CLI;
             pcntl_signal(SIGINT, function() {
                 rjq::$run = false;
             });
+            pcntl_signal(SIGCHLD, function() {
+                $status = null;
+                pcntl_waitpid(-1, $status);
+            });
             self::$stats['start'] = time();
             // the main loop
             while(self::$run) {
