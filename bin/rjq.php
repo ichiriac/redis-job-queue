@@ -227,6 +227,16 @@ CLI;
             while(self::$run) {
                 self::$stats['memory'] = memory_get_usage(true);
                 usleep(100 * 1000); // wait 100 ms
+                if (
+                    !empty(self::$conf['stats'])
+                    && time() % 10 === 0 // every 10 seconds
+                ) {
+                    file_put_contents(
+                        self::$conf['stats'], json_encode(
+                            self::$stats
+                        )
+                    );
+                }
                 pcntl_signal_dispatch();
             }
         }
