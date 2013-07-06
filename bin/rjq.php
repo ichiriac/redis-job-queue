@@ -1,11 +1,4 @@
 #!/usr/bin/env php
-### BEGIN INIT INFO
-# Provides: rjq
-# Default-Start: 2 3 4 5
-# Default-Stop: 0 1 6
-# Short-Description: Start Redis Job Queue daemon at boot time
-# Description: This script handles job queues and launches workers
-### END INIT INFO
 <?php
     $args = array();
     parse_str(implode('&', array_slice($argv, 1)), $args);
