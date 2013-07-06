@@ -25,7 +25,7 @@ CLI;
     }
     // read the configuration
     if ( !isset($args['--config']) ) {
-        $args['--config'] = 'rjq.conf';
+        $args['--config'] = '../rjq.conf';
     }
     if ( file_exists($args['--config']) ) {
         $config = file_get_contents($args['--config']);

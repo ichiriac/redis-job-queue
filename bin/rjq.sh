@@ -12,7 +12,6 @@
 # CONFIGURATION
 PATH="/etc/rjq"
 CONFIG="${PATH}/rjq.conf"
-EXEC="${PATH}/bin/rjq.php"
 
 # PROPAGATE THE REQUEST
-$EXEC --conf=$CONFIG $@
+/usr/bin/php ${PATH}/bin/rjq.php --config=$CONFIG $@
