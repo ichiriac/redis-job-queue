@@ -1,9 +1,20 @@
 #!/usr/bin/env php
 <?php
-    $args = array();
-    parse_str(implode('&', array_slice($argv, 1)), $args);
+    // reading command line args
+    $args = getopt(
+        'hc:', array(
+            'help',
+            'config:',
+            'start',
+            'stop',
+            'status'
+        )
+    );
+    // handling alias
+    if (isset($args['c'])) $args['config'] = $args['c'];
+    if (isset($args['h'])) $args['help'] = $args['h'];
     // shows the help
-    if ( isset($args['--help']) ) {
+    if ( isset($args['help']) ) {
         echo <<<CLI
 Redis Job Queue - by Ioan Chiriac (Under MIT 2013)
 This script handles job queues and launches workers
@@ -24,18 +35,18 @@ CLI;
         exit(0);
     }
     // read the configuration
-    if ( !isset($args['--config']) ) {
-        $args['--config'] = '../rjq.conf';
+    if ( !isset($args['config']) ) {
+        $args['config'] = '../rjq.conf';
     }
-    if ( file_exists($args['--config']) ) {
-        $config = file_get_contents($args['--config']);
+    if ( file_exists($args['config']) ) {
+        $config = file_get_contents($args['config']);
     } else {
-        echo 'ERROR : Unable to read the configuration : ' . $args['--config'] . "\n";
+        echo 'ERROR : Unable to read the configuration : ' . $args['config'] . "\n";
         exit(1);
     }
     $config = json_decode($config, true);
     if ( empty($config) ) {
-        echo 'ERROR : JSON syntax error in : ' . $args['--config'] . "\n";
+        echo 'ERROR : JSON syntax error in : ' . $args['config'] . "\n";
         exit(1);
     }
 
@@ -85,7 +96,7 @@ CLI;
     }
 
     // the status command
-    if ( isset($args['--status']) ) {
+    if ( isset($args['status']) ) {
         if ( empty($pid) ) {
             echo 'The RJQ service is NOT running' . "\n";
         } else {
@@ -106,11 +117,11 @@ CLI;
                     echo 'Started at ' . date('Y-m-d H:i:s', $stats['start']);
                     echo ' - ' . secs_to_h( time() - $stats['start']) . "\n\n";
                     echo 'Memory   : ' . round($stats['memory'] / 1024 / 1024, 2) . 'MB' . "\n";
-                    echo 'Workers  : ' . $stats['counters']['workers'] . "\n";
-                    echo 'Queue    : ' . $stats['counters']['queue'] . "\n";
+                    echo 'Workers  : ' . (int)$stats['counters']['workers'] . "\n";
+                    echo 'Queue    : ' . (int)$stats['counters']['queue'] . "\n";
                     echo 'Jobs     : '
                         . round($stats['counters']['done'] / 1000, 1) . 'M done, '
-                        . $stats['counters']['fail'] . ' fails '
+                        . (int)$stats['counters']['fail'] . ' fails '
                         . "\n";
                 }
             }
@@ -119,12 +130,12 @@ CLI;
     }
 
     // restart as daemon
-    if ( isset($args['--restart']) ) {
-        $args['--stop'] = true;
-        $args['--start'] = true;
+    if ( isset($args['restart']) ) {
+        $args['stop'] = true;
+        $args['start'] = true;
     }
     // stops the daemon
-    if ( isset($args['--stop']) ) {
+    if ( isset($args['stop']) ) {
         if ( !empty($pid) ) {
             echo 'Stopping ...';
             if ( !posix_kill($pid, SIGTERM) ) {
@@ -153,7 +164,7 @@ CLI;
     }
 
     // run as daemon
-    if ( isset($args['--start']) ) {
+    if ( isset($args['start']) ) {
         if ( !empty($pid) && posix_kill($pid, 0) ) {
             echo 'RJQ is actually running (PID:' . $pid .')' . "\n";
             exit(1);
