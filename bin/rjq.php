@@ -51,8 +51,6 @@ include( __DIR__ . '/../src/RedisJobQueue.php');
 $pid = null;
 $config = array();
 
-print_r($args);
-
 // handling options
 foreach( $args as $cmd => $arg) {
     switch( strtolower($cmd) ) {
