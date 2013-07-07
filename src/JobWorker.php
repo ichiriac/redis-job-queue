@@ -100,7 +100,7 @@ class JobWorker {
         // sends the commands to the process
         try {
             if ( !$this->send( $this->task ) ) return false;
-            if ( !$this->send( $redis->hget( $key, 'args' ) ) ) return false;
+            if ( !$this->send( $redis->hget( $key, 'args' )->read() ) ) return false;
         } catch( \Exception $ex ) {
             $this->parent->log(
                 'Error during at the job ' . $this->task . ' start : '
@@ -120,7 +120,7 @@ class JobWorker {
                     'srv' => $this->parent->parent->$host,
                     'pid', $this->getPid(),
                 )
-            );
+            )->read();
         } catch(\Exception $ex) {
             $this->parent->log(
                 'Warning : could not flag the job ' . $this->task . ' state : '
