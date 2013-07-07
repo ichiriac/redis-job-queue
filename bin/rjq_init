@@ -11,7 +11,7 @@
 
 # CONFIGURATION
 PATH="/etc/rjq"
-CONFIG="${PATH}/rjq.conf"
+CONFIG="${PATH}/config.json"
 
 # PROPAGATE THE REQUEST
 /usr/bin/php ${PATH}/bin/rjq.php --config=$CONFIG $@
