@@ -54,7 +54,7 @@ class RedisClient
     {
         $code = null;
         $error = null;
-        $this->_socket = stream_socket_client(
+        $this->_socket = @stream_socket_client(
             $dsn, $code, $error, 1, STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT
         );
         if ($this->_socket === false) {
@@ -354,17 +354,30 @@ class RedisClient
      */
     protected function _cmd($method, $args)
     {
-        $response =
+        return
             '*' . (count($args) + 1) . CRLF
             . '$' . strlen($method) . CRLF
-            . strtoupper($method);
+            . strtoupper($method)
+            . $this->_args( $args )
+            . CRLF;
+    }
+    /**
+     * Builds a nested array list of parameters
+     * @param array $args
+     * @return string
+     */
+    protected function _args( $args ) {
+        $response = null;
         foreach ($args as $k => $arg) {
             if ( !is_numeric($k) ) {
                 $response .= CRLF . '$' . strlen($k) . CRLF . $k;
             }
-            $response .= CRLF . '$' . strlen($arg) . CRLF . $arg;
+            if ( is_array($arg) ) {
+                $response .= $this->_args($arg);
+            } else {
+                $response .= CRLF . '$' . strlen($arg) . CRLF . $arg;
+            }
         }
-        return $response . CRLF;
+        return $response;
     }
-
 }
