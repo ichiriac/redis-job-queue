@@ -17,5 +17,6 @@ Usage :
   --start    Starts the job manager (on daemon mode)
   --stop     Stops the job manager
   --restart  Restarts the job manager
+  --cli      Starts RJQ in CLI mode (used for testing)
 
 CLI;

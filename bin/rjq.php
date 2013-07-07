@@ -7,16 +7,14 @@
  */
 
 // reading command line args
-$args = getopt(
-    null, array(
-        'help',
-        'config:',
-        'start',
-        'stop',
-        'status'
-    )
-);
 
+$args = array();
+for($i = 1; $i < $argc; $i++) {
+    $arg = explode('=', ltrim($argv[$i], '-'), 2);
+    if ( !empty($arg[0]) ) {
+        $args[$arg[0]] = isset($arg[1]) ? $arg[1] : true;
+    }
+}
 // Convert seconds to human readable text.
 function sec2h($secs) {
     $units = array(
@@ -45,12 +43,15 @@ Redis Job Queue - by Ioan Chiriac (released under MIT license)
 This script handles job queues and launches workers
 Url : https://github.com/ichiriac/redis-job-queue
 
+
 CLI;
 
 // init some global vars
 include( __DIR__ . '/../src/RedisJobQueue.php');
 $pid = null;
 $config = array();
+
+print_r($args);
 
 // handling options
 foreach( $args as $cmd => $arg) {
@@ -76,7 +77,6 @@ foreach( $args as $cmd => $arg) {
         case 'restart':
             include('cmd/stop.php');
             include('cmd/start.php');
-            exit(0);
             break;
         // stops the daemon
         case 'stop':
@@ -89,7 +89,9 @@ foreach( $args as $cmd => $arg) {
         // run as daemon
         case 'start':
             include('cmd/start.php');
-            exit(0);
+            break;
+        // configuration flags (ignored)
+        case 'cli':
             break;
         // default : invalid command
         default:
@@ -97,4 +99,6 @@ foreach( $args as $cmd => $arg) {
             exit(1);
     }
 }
-
+// bad exit
+echo 'ERROR : No command found (use --help)' . "\n";
+exit(1);
