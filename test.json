@@ -1,0 +1,16 @@
+{
+    "server": {
+        "dsn":  "tcp://127.0.0.1:6379"
+        ,"db":  0
+        ,"pwd": null
+    }
+    ,"pid":     null
+    ,"log":     null
+    ,"stats":   null
+    ,"jobs": [
+        {
+            "prefix": "jobs",
+            "workers": 8
+        }
+    ]
+}
