@@ -23,7 +23,7 @@ class RedisJobQueue {
     // running flag on main loop
     public $run = true;
     // the current process id
-    public $pid;
+    public $pid = -1;
     // statistics
     public $stats = array(
         'init' => null,
@@ -46,15 +46,22 @@ class RedisJobQueue {
     // initialize the job manager
     public function __construct( array $conf ) {
         $this->conf = $conf;
+        if ( empty($this->conf['server']) ) {
+            throw new \Exception(
+                'FATAL ERROR : Bad configuration structure'
+            );
+        }
         $this->host = php_uname('n');
-        $this->pid = posix_getpid();
+        if ( function_exists('posix_getpid') ) {
+            $this->pid = posix_getpid();
+        }
         $this->stats['init'] = time();
     }
     /**
      * Gets the redis connection
      * @return RedisClient
      */
-    static public function getRedis() {
+    public function getRedis() {
         if ( !$this->redis ) {
             try {
                 $this->redis = new RedisClient(
@@ -75,14 +82,17 @@ class RedisJobQueue {
     // outputs some log
     public function log( $data ) {
         if (!empty($this->conf['log']) ) {
+            echo $data . "\n";
             $f = fopen( $this->conf['log'], 'a+');
-            fputs($f, date('Y-m-d H:i:s') . "\t" . $data . "\n");
-            fclose($f);
+            if ( $f ) {
+                fputs($f, date('Y-m-d H:i:s') . "\t" . $data . "\n");
+                fclose($f);
+            }
         }
     }
     // make a pause and wait
     public function wait($msec = 0) {
-        pcntl_signal_dispatch();
+        if ( $this->pid > 0 ) pcntl_signal_dispatch();
         if ( !empty($msec) ) {
             usleep($msec * 1000);
         }
@@ -122,7 +132,7 @@ class RedisJobQueue {
         }
     }
     // starts the job
-    public function start( $conf) {
+    public function start() {
         $this->log('Starting RJQ (PID:' . $this->pid . ')');
         $this->stats['start'] = time();
         // the main loop
