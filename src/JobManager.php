@@ -101,13 +101,13 @@ class JobManager {
             );
             return null;
         } else {
-            $redis->lpush( $this->prefix . '.queue', $job );
+            $redis->lpush( $this->prefix . '.queue', $job )->read();
         }
     }
     // gets a new job
     public function getJob() {
         $redis = $this->getRedis();
         if ( $redis ) return null;
-        return $redis->lpop( $this->prefix . '.queue' );
+        return $redis->rpop( $this->prefix . '.queue' )->read();
     }
 }
