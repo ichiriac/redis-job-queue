@@ -8,13 +8,14 @@
 echo <<<CLI
 Sample :
 
-  ./rjq.php --config=./rjq.conj
+  ./rjq.php --config=/etc/rjq/config.json
 
 Usage :
 
-  --config  Specify the configuration file that contains server configuration
-  --status  Display the job manager status
-  --start   Starts the job manager (if it's on daemon mode)
-  --stop    Stops the job manager
+  --config   Specify the configuration file that contains server configuration
+  --status   Display the job manager status
+  --start    Starts the job manager (on daemon mode)
+  --stop     Stops the job manager
+  --restart  Restarts the job manager
 
 CLI;
