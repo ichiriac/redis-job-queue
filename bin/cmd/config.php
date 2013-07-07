@@ -16,10 +16,6 @@ if ( empty($config) ) {
     echo 'ERROR : JSON syntax error in : ' . $arg . "\n";
     exit(3);
 }
-// define some defaults values
-if ( empty($config['pid']) ) {
-    $config['pid'] = '/var/run/rjq.pid';
-}
 // setting default timezone (avoid warnings)
 if ( ini_get('date.timezone') == '' ) {
     date_default_timezone_set('Europe/Paris');

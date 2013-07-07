@@ -64,8 +64,12 @@ foreach( $args as $cmd => $arg) {
         // loads the configuration
         case 'config':
             $config = include('cmd/config.php');
-            if ( file_exists($config['pid']) ) {
-                $pid = file_get_contents($config['pid']);
+            if ( !empty($config['pid']) ) {
+                if ( file_exists($config['pid']) ) {
+                    $pid = file_get_contents($config['pid']);
+                }
+            } else {
+                $args['cli'] = true;
             }
             break;
         // show some status information

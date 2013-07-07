@@ -56,7 +56,9 @@ try {
     register_shutdown_function(function() use($instance) {
         $instance->log('Shutdown requested');
         $instance->stop();
-        unlink( $instance->$conf['pid'] );
+        if ( !empty($instance->conf['pid']) ) {
+            unlink($instance->conf['pid']);
+        }
     });
 
     // handling signals in DAEMON mode
