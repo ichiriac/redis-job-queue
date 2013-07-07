@@ -107,6 +107,8 @@ class RedisJobQueue {
                         $this->stats
                     )
                 );
+            } else {
+                print_r($this->stats); // helper for the cli mode
             }
             // send stats to redis
             $redis = $this->getRedis();
