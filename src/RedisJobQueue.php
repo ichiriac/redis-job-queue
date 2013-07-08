@@ -99,9 +99,9 @@ class RedisJobQueue {
         if ( time() > $this->last_flush + 10) {
             // flushing and do extra jobs every 10 seconds
             $this->last_flush = time();
+            $this->stats['memory'] = memory_get_usage(true);
             // write stats as a file
             if ( !empty($this->conf['stats']) ) {
-                $this->stats['memory'] = memory_get_usage(true);
                 file_put_contents(
                     $this->conf['stats'], json_encode(
                         $this->stats
