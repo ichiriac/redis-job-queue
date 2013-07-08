@@ -1,0 +1,14 @@
+{
+    "server": {
+        "dsn":  "tcp://127.0.0.1:6379"
+        ,"db":  0
+        ,"pwd": null
+    }
+    ,"jobs": [
+        {
+            "task": "doSleep",
+            "file": "./basic_worker.php",
+            "workers": 8
+        }
+    ]
+}
