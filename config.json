@@ -8,9 +8,5 @@
     ,"log":     "/var/log/rjq.log"
     ,"stats":   "/var/log/rjq.stats"
     ,"jobs": [
-        {
-            "prefix": "jobs",
-            "workers": 8
-        }
     ]
 }
