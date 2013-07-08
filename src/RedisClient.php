@@ -354,11 +354,12 @@ class RedisClient
      */
     protected function _cmd($method, $args)
     {
+        $args = $this->_args( $args );
         return
-            '*' . (count($args) + 1) . CRLF
+            '*' . ($args[0] + 2) . CRLF
             . '$' . strlen($method) . CRLF
             . strtoupper($method)
-            . $this->_args( $args )
+            . $args[1]
             . CRLF;
     }
     /**
@@ -367,15 +368,19 @@ class RedisClient
      * @return string
      */
     protected function _args( $args ) {
-        $response = null;
+        $response = array(0, null);
         foreach ($args as $k => $arg) {
             if ( !is_numeric($k) ) {
-                $response .= CRLF . '$' . strlen($k) . CRLF . $k;
+                $response[0]++;
+                $response[1] .= CRLF . '$' . strlen($k) . CRLF . $k;
             }
             if ( is_array($arg) ) {
-                $response .= $this->_args($arg);
+                $arg = $this->_args($arg);
+                $response[0] += $arg[0];
+                $response[1] .= $arg[1];
             } else {
-                $response .= CRLF . '$' . strlen($arg) . CRLF . $arg;
+                $response[0]++;
+                $response[1] .= CRLF . '$' . strlen($arg) . CRLF . $arg;
             }
         }
         return $response;
