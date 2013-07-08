@@ -32,7 +32,7 @@ Define the job on RJQ configuration (`/etc/rjq/config.json`) :
 ```json
 {
    ...
-    ,"tasks": [
+    ,"jobs": [
         {
             "name": "doSleep",
             "file": "/var/my-app/workers/sleep.php",
@@ -43,7 +43,9 @@ Define the job on RJQ configuration (`/etc/rjq/config.json`) :
 }
 ```
 
-You need to restart RJQ after each configuration modification :
+You can find more information on the [Configuration wiki page](https://github.com/ichiriac/redis-job-queue/wiki/Configuring-RJQ)
+
+**NOTE :** You need to restart RJQ after each configuration modification :
 
 ```bash
   $ rjq --restart
