@@ -356,7 +356,7 @@ class RedisClient
     {
         $args = $this->_args( $args );
         return
-            '*' . ($args[0] + 2) . CRLF
+            '*' . ($args[0] + 1) . CRLF
             . '$' . strlen($method) . CRLF
             . strtoupper($method)
             . $args[1]
