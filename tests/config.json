@@ -6,7 +6,7 @@
     }
     ,"jobs": [
         {
-            "task": "doSleep",
+            "name": "doSleep",
             "file": "./basic_worker.php",
             "workers": 8
         }
