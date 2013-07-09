@@ -56,6 +56,15 @@ class RedisJobQueue {
             $this->pid = posix_getpid();
         }
         $this->stats['init'] = time();
+        foreach( $this->conf['jobs'] as $task ) {
+            $name = strtolower($task['name']);
+            $this->jobs[$name] = new JobManager(
+                $this,
+                $name,
+                $task['file'],
+                $task['workers']
+            );
+        }
     }
     /**
      * Gets the redis connection
