@@ -15,11 +15,14 @@ class JobManager {
     public $prefix;
     // max number of running childs
     public $limit;
+    // the script file to be run
+    public $script;
     // initialize a job manager
-    public function __construct(RedisJobQueue $parent, $prefix, $limit = 4) {
+    public function __construct(RedisJobQueue $parent, $prefix, $file, $limit = 4) {
         $this->parent = $parent;
         $this->prefix = $prefix;
         $this->limit = $limit;
+        $this->script = $file;
     }
     // stops all childs that not work
     public function clean() {
