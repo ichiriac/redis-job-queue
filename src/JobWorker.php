@@ -41,8 +41,9 @@ class JobWorker {
                 $pipes,
                 '/tmp',
                 array(
-                    'config' => $this->parent->parent->conf,
-                    'prefix' => $this->parent->prefix
+                    'config'    => $this->parent->parent->conf,
+                    'prefix'    => $this->parent->prefix,
+                    'bootstrap' => $this->parent->script
                 )
             );
             if ( $this->process === false ) {
@@ -68,7 +69,7 @@ class JobWorker {
     public function send( $data ) {
         $process = $this->getProcess();
         if ( $process ) {
-            if ( fwrite($this->std_out, strlen($data) . "\n") === false) {
+            if ( fwrite($this->std_out, '$' . strlen($data) . "\n") === false) {
                 return false;
             }
             if ( fwrite($this->std_out, $data . "\n") === false) {
@@ -117,7 +118,7 @@ class JobWorker {
                 array(
                     'state' => 'progress',
                     'time' => $this->last_job,
-                    'srv' => $this->parent->parent->$host,
+                    'srv' => $this->parent->parent->host,
                     'pid', $this->getPid(),
                 )
             )->read();
