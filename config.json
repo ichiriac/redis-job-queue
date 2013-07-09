@@ -1,12 +1,12 @@
 {
-    "server": {
+     "pid":     "/var/run/rjq.pid"
+    ,"log":     "/var/log/rjq.log"
+    ,"stats":   "/var/log/rjq.stats"
+    ,"server": {
         "dsn":  "tcp://127.0.0.1:6379"
         ,"db":  0
         ,"pwd": null
     }
-    ,"pid":     "/var/run/rjq.pid"
-    ,"log":     "/var/log/rjq.log"
-    ,"stats":   "/var/log/rjq.stats"
-    ,"jobs": [
+    ,"tasks": [
     ]
 }
