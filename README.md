@@ -1,43 +1,72 @@
-redis-job-queue
-===============
+# RJQ (Redis Job Queue)
 
-RJQ is a job queue manager &amp; worker based on Redis and PHP
+RJQ is a job queue manager based on Redis and PHP. It's really small, fault tolerant, and quite 
+simple to install and use.
 
-# Install as a daemon
-
-## Checkout :
+## Quick start (install it as a daemon)
 
 ```bash
-  mkdir cd /etc/rjq
-  cd /etc/rjq
-  git checkout https://github.com/ichiriac/redis-job-queue.git ./
-```
-
-## Install it on your system :
-
-```bash
+  mkdir /etc/rjq
+  git checkout https://github.com/ichiriac/redis-job-queue.git /etc/rjq
   cp /etc/rjq/bin/rjq_init /etc/init.d/rjq
   ln -s /etc/init.d/rjq /usr/local/bin/rjq
   sudo update-rc.d rjq defaults
+  rjq --start
 ```
 
-# How to ?
+You can find more information on the [Installation wiki page](https://github.com/ichiriac/redis-job-queue/wiki/Install)
 
-Start to work :
+## Launch a job with a script
 
-  `rjq --start`
+Write your job into a file (example : `/var/my-app/workers/sleep.php`) :
+```php
+<?php
+// This script is defines your job
+function doSleep( $duration, $name ) {
+    sleep($duration);
+    echo 'Hello ' . $name;
+}
+```
 
-Stop to work :
+Define the job on RJQ configuration (`/etc/rjq/config.json`) :
+```json
+{
+   ...
+    ,"jobs": [
+        {
+            "name": "doSleep",
+            "file": "/var/my-app/workers/sleep.php",
+            "workers": 8
+        }
+    ]
+   ...
+}
+```
 
-  `rjq --stop`
+You can find more information on the [Configuration wiki page](https://github.com/ichiriac/redis-job-queue/wiki/Configuring-RJQ)
 
-Restart (after any configuration change)
+**NOTE :** You need to restart RJQ after each configuration modification :
 
- `rjq --restart`
+```bash
+  $ rjq --restart
+```
 
-Get some stats :
+Call this job from your application scripts (a controller action for example)
+```php
+<?php
+require_once( '/etc/rjq/src/RedisClient.php' );
+require_once( '/etc/rjq/src/RedisQueue.php' );
+// init the RJQ manager
+$queue = new RedisQueue(
+    new RedisClient('tcp://127.0.0.1:6379', 0, null)
+);
+// call your job
+$job = $queue->doSleep( 10, 'John Doe');
+// gets the task status
+echo 'Job ' . $job . ' is : ' . $queue->getJobStatus($job);
+```
 
-  `rjq --status`
+And `voilà` :)
 
 ## MIT License
 
