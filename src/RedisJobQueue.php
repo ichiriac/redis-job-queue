@@ -90,8 +90,8 @@ class RedisJobQueue {
     }
     // outputs some log
     public function log( $data ) {
+        echo $data . "\n";
         if (!empty($this->conf['log']) ) {
-            echo $data . "\n";
             $f = fopen( $this->conf['log'], 'a+');
             if ( $f ) {
                 fputs($f, date('Y-m-d H:i:s') . "\t" . $data . "\n");
@@ -133,7 +133,7 @@ class RedisJobQueue {
                             'nb.fail' => $this->stats['counters']['fail'],
                             'nb.errors' => $this->stats['counters']['errors']
                         )
-                    );
+                    )->read();
                 } catch(\Exception $ex) {
                     $this->log(
                         'Fail to flush stats on redis :' . $ex->getMessage()
