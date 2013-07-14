@@ -50,7 +50,19 @@ CLI;
 include( __DIR__ . '/../src/RedisJobQueue.php');
 $pid = null;
 $config = array();
-
+// searching for php
+$php_dir = 'php' . (
+    strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ?
+    '.exe' : null
+);
+$scan = explode(';', $_SERVER['Path']);
+foreach($scan as $dir) {
+    if ( file_exists($dir . '/' . $php_dir) ) {
+        $php_dir = $dir . '/' . $php_dir;
+        break;
+    }
+}
+define('PHPBIN', $php_dir);
 // handling options
 foreach( $args as $cmd => $arg) {
     switch( strtolower($cmd) ) {
@@ -79,6 +91,7 @@ foreach( $args as $cmd => $arg) {
         case 'restart':
             include('cmd/stop.php');
             include('cmd/start.php');
+            exit(0);
             break;
         // stops the daemon
         case 'stop':
@@ -102,5 +115,5 @@ foreach( $args as $cmd => $arg) {
     }
 }
 // bad exit
-echo 'ERROR : No command found (use --help)' . "\n";
+echo 'ERROR : No command found [start|stop|restart|status] (use --help)' . "\n";
 exit(1);
