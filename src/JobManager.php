@@ -17,12 +17,25 @@ class JobManager {
     public $limit;
     // the script file to be run
     public $script;
+    // events
+    public $events;
     // initialize a job manager
     public function __construct(RedisJobQueue $parent, $prefix, $file, $limit = 4) {
         $this->parent = $parent;
         $this->prefix = $prefix;
         $this->limit = $limit;
         $this->script = $file;
+        if ( !function_exists('event_base_new') ) {
+            $this->log('Warning : You should install libevent as a PHP module');
+        } else {
+            $this->events = event_base_new();
+        }
+    }
+    // destruction
+    public function __destruct() {
+        if ( $this->events ) {
+            event_base_free($this->events);
+        }
     }
     // stops all childs that not work
     public function clean() {
@@ -32,8 +45,15 @@ class JobManager {
         return empty($this->workers);
     }
     // helper : gets the redis instance
-    public function getRedis() {
-        return $this->parent->getRedis();
+    public function getRedis( $required = false ) {
+        $redis = $this->parent->getRedis();
+        if ( $required && !$redis ) {
+            // wait that redis comme back
+            while( !$redis ) {
+                $redis = $this->parent->getRedis();
+            }
+        }
+        return $redis;
     }
     // helper : log some output data
     public function log( $data ) {
@@ -76,6 +96,7 @@ class JobManager {
         if ( $worker ) {
             $job = $this->getJob();
             if ( $job ) {
+                $this->log('Work on #' . $job);
                 try {
                     if ( !$worker->process($job) ) {
                         throw new \Exception(
@@ -91,10 +112,19 @@ class JobManager {
                 }
             }
         }
+        if ( $this->events ) {
+            event_base_loop(
+                $this->events,
+                EVLOOP_NONBLOCK
+            );
+        } else {
+            foreach($this->workers as $w) $w->dispatch();
+        }
+
     }
     // puts the job in the queue
     public function requeue( $job ) {
-        $this->parent['stats']['fail'] ++;
+        $this->parent->stats['counters']['fail'] ++;
         $redis = $this->getRedis();
         if ( $redis ) {
             $this->log(
@@ -109,8 +139,6 @@ class JobManager {
     }
     // gets a new job
     public function getJob() {
-        $redis = $this->getRedis();
-        if ( $redis ) return null;
-        return $redis->rpop( $this->prefix . '.queue' )->read();
+        return $this->getRedis(true)->rpop( $this->prefix . '.queue' )->read();
     }
 }
