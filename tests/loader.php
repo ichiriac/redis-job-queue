@@ -8,13 +8,14 @@ $queue = new RedisQueue(
     new RedisClient('tcp://127.0.0.1:6379', 0, null)
 );
 define('LIMIT', empty($argv[1]) ? 10 : $argv[1]);
+define('RAND', empty($argv[2]) ? 1 : $argv[2]);
 // add jobs
 echo 'Loads some workers ('.LIMIT.')...' . "\n";
 $start = microtime(true);
 $jobs = array();
 for( $i = 0; $i < LIMIT; $i++) {
     $jobs[] = $queue->doSleep(
-        1, 'John' . $i
+        rand(1, RAND), 'John' . $i
     );
 }
 
