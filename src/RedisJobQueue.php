@@ -109,6 +109,7 @@ class RedisJobQueue {
         if ( time() > $this->last_flush + 10) {
             // flushing and do extra jobs every 10 seconds
             $this->last_flush = time();
+            gc_collect_cycles();
             $this->stats['memory'] = memory_get_usage(true);
             // write stats as a file
             if ( !empty($this->conf['stats']) ) {
@@ -149,18 +150,24 @@ class RedisJobQueue {
         $this->stats['start'] = time();
         // the main loop
         while($this->run) {
+            $work = false;
             foreach($this->jobs as $job) {
                 try {
-                    $job->dispatch();
+                    if ($job->dispatch()) {
+                        $work = true;
+                    }
                 } catch(\Exception $ex) {
                     $this->log(
                         'Job manager error : ' . $ex->getMessage()
                     );
+                    if ( VERBOSE ) {
+                        $this->log($ex->__toString());
+                    }
                     $this->stats['counters']['errors'] ++;
                 }
             }
-            // wait 10 ms
-            self::wait(10);
+            // wait 50ms :
+            if ( !$work ) self::wait(50);
         }
         $this->log('LOOP END : Wait to close each job queue');
         // wait each child to be stopped
