@@ -16,7 +16,7 @@ while( true ) {
     if ( empty($size) ) {
         echo 'wait' . "\n";
         ob_flush();
-        usleep(1000 * 10);
+        usleep(1000);
         continue;
     }
     if ( $size[0] !== '$' ) {
@@ -48,6 +48,5 @@ while( true ) {
         fputs($log,  $ex->__toString());
         echo 'fail' . "\n";
     }
-    ob_flush();
 }
 exit(0);
