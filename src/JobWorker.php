@@ -47,7 +47,8 @@ class JobWorker {
                 '/tmp',
                 array(
                     'prefix'    => $this->parent->prefix,
-                    'bootstrap' => $this->parent->script
+                    'bootstrap' => $this->parent->script,
+                    'verbose' => VERBOSE
                 )
             );
             if ( $this->process === false ) {
@@ -60,10 +61,9 @@ class JobWorker {
                 $this->std_out  = $pipes[0];
                 $this->std_in   = $pipes[1];
                 $this->std_err  = $pipes[2];
+                stream_set_blocking($this->std_in, 0);
                 stream_set_blocking($this->std_err, 0);
-                $this->parent->log(
-                    stream_get_contents($this->std_err)
-                );
+                VERBOSE && $this->parent->log('Start a new process : ' . $this->process);
                 if ( function_exists('event_new') ) {
                     $this->event = event_new();
                     event_set(
@@ -82,49 +82,61 @@ class JobWorker {
     }
     // alternative way to dispatch reading events
     public function dispatch() {
-        if ( $this->std_in && $this->busy ) {
+        if ( $this->busy && $this->std_in ) {
             $this->onRead();
-            if ( !$this->alive() ) {
-                $this->parent->log('The worker process is dead');
-                $this->kill();
-                return;
-            }
+        }
+        if ( $this->process && !$this->alive() ) {
+            $this->parent->log('Notice : the worker process is dead');
+            $this->kill();
+            return;
         }
     }
     // receives a message from the process
     public function onRead() {
-        $cmd = stream_get_contents($this->std_in);
-        $err = stream_get_contents($this->std_err);
+        // check for errors
+        $err = trim(fgets($this->std_err));
         if ( !empty($err) ) {
-            $this->parent->log('ERROR : ' . $err);
+            $this->parent->log('ERROR > ' . $err);
         }
-        if ( empty($cmd) ) return;
-        $this->parent->log('child > ' . $cmd);
+        // check the response
+        if ( $this->std_in === false) {
+            $cmd = 'error';
+        } else {
+            $cmd = trim(fgets($this->std_in));
+            if ( empty($cmd) ) return;
+            VERBOSE && $this->parent->log(' < ' . $cmd);
+        }
         switch( $cmd ) {
             case 'done':
                 $redis = $this->parent->getRedis(true);
                 $key = 'rjq.' .  $this->task;
-                $redis->hmset(
-                    $key,
-                    array(
-                        'state' => 'done',
-                        'time' => time(),
-                        'duration' => time() - $this->last_job,
+                $redis
+                    ->hdel(
+                        $this->parent->prefix . '.pending',
+                        $this->task
                     )
-                )->read();
+                    ->hmset(
+                        $key,
+                        array(
+                            'state' => 'done',
+                            'time' => time(),
+                            'duration' => time() - $this->last_job,
+                        )
+                    )
+                    ->expire(
+                        $key,
+                        3600 // the log result will expire in a hour
+                    )
+                    ->read()
+                ;
                 $this->busy = false;
                 $this->last_job = time();
+                $this->parent->parent->stats['counters']['done'] ++;
                 break;
             case 'error':
-                $redis = $this->parent->getRedis(true);
-                $key = 'rjq.' .  $this->task;
-                $redis->hmset(
-                    $key,
-                    array(
-                        'state' => 'error',
-                        'time' => time()
-                    )
-                )->read();
+                $this->parent->requeue(
+                    $this->task
+                );
                 $this->busy = false;
                 $this->last_job = time();
                 break;
@@ -141,10 +153,11 @@ class JobWorker {
     public function send( $data ) {
         $process = $this->getProcess();
         if ( $process ) {
+            VERBOSE && $this->parent->log(' > ' . $data);
             if ( fwrite($this->std_out, '$' . strlen($data) . "\n") === false) {
                 return false;
             }
-            if ( fwrite($this->std_out, $data . "\n") === false) {
+            if ( fwrite($this->std_out, $data) === false) {
                 return false;
             }
             return true;
@@ -155,12 +168,12 @@ class JobWorker {
     // process the specified task id
     public function process($task) {
         $redis = $this->parent->getRedis(true);
-        $this->task = $task;
+        $this->task = $task['id'];
         $key = 'rjq.' .  $this->task;
         // put the task into a pending state
         if ( !$redis->hsetnx(
             $this->parent->prefix . '.pending',
-            $task,
+            $this->task,
             time()
         )->read() ) {
             // already pending
@@ -172,7 +185,7 @@ class JobWorker {
         // sends the commands to the process
         try {
             if ( !$this->send( $this->task ) ) return false;
-            if ( !$this->send( $redis->hget( $key, 'args' )->read() ) ) return false;
+            if ( !$this->send( $task['args'] ) ) return false;
         } catch( \Exception $ex ) {
             $this->parent->log(
                 'Error during at the job ' . $this->task . ' start : '
@@ -198,7 +211,8 @@ class JobWorker {
                 'Warning : could not flag the job ' . $this->task . ' state : '
                 . $ex->getMessage()
             );
-         }
+        }
+        VERBOSE && $this->parent->log(' process... ' . $this->task);
         return true;
     }
     // kill the current process
