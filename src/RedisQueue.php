@@ -35,6 +35,7 @@ class RedisQueue {
             ->hmset(
                 'rjq.' . $job,
                 array(
+                    'id' => $job,
                     'state' => 'new',
                     'time' => time(),
                     'args' => json_encode($args)
