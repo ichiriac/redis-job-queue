@@ -1,5 +1,8 @@
 {
-    "server": {
+     "pid":     "/var/run/rjq-tests.pid"
+    ,"log":     "/var/log/rjq-tests.log"
+    ,"stats":   "/var/log/rjq-tests.stats"
+    ,"server": {
         "dsn":  "tcp://127.0.0.1:6379"
         ,"db":  0
         ,"pwd": null
