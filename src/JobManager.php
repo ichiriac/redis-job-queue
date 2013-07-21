@@ -43,8 +43,8 @@ class JobManager {
     }
     // stops all childs that not work
     public function clean() {
-        foreach($this->workers as &$w) {
-            if ( !$w->busy ) unset($w);
+        foreach($this->workers as $i => $w) {
+            if ( !$w->busy ) unset($this->workers[$i]);
         }
         return empty($this->workers);
     }
@@ -66,14 +66,15 @@ class JobManager {
     // check and select a free worker
     public function getWorker() {
         $worker = null;
-        foreach($this->workers as &$w) {
+        foreach($this->workers as $i => $w) {
             if ( !$w->busy ) {
                 if ( !$worker ) {
                     $worker = $w;
                 } else {
                     if ( time() - $w->last_job > 60 ) {
+                        VERBOSE && $this->log('close inactive worker');
                         // inactive from 1 minute
-                        unset($w);
+                        unset($this->workers[$i]);
                     }
                 }
             } else {
@@ -81,8 +82,9 @@ class JobManager {
                     // zombie
                     unset($w);
                 } elseif ( time() - $w->last_job > 600 ) {
+                    $this->log('WARNING : kill timeout worker');
                     // run timeout
-                    unset($w);
+                    unset($this->workers[$i]);
                 }
             }
         }
@@ -100,7 +102,7 @@ class JobManager {
         if ( $worker ) {
             $job = $this->getJob();
             if ( $job ) {
-                $this->log('Work on #' . $job);
+                VERBOSE && $this->log('Work on #' . $job['id']);
                 try {
                     if ( !$worker->process($job) ) {
                         throw new \Exception(
@@ -110,10 +112,11 @@ class JobManager {
                 } catch( \Exception $ex) {
                     $this->parent->stats['counters']['errors'] ++;
                     $this->log(
-                        'Worker error #'.$job.' : ' . $ex->getMessage()
+                        'Worker error #'.$job['id'].' : ' . $ex->getMessage()
                     );
-                    $this->requeue( $job );
+                    $this->requeue( $job['id'] );
                 }
+                return true;
             }
         }
         if ( $this->events ) {
@@ -124,13 +127,13 @@ class JobManager {
         } else {
             foreach($this->workers as $w) $w->dispatch();
         }
-
+        return false;
     }
     // puts the job in the queue
     public function requeue( $job ) {
         $this->parent->stats['counters']['fail'] ++;
         $redis = $this->getRedis();
-        if ( $redis ) {
+        if ( !$redis ) {
             $this->log(
                 'CRITICAL ERROR - The job #'
                 . $job
@@ -138,11 +141,71 @@ class JobManager {
             );
             return null;
         } else {
-            $redis->lpush( $this->prefix . '.queue', $job )->read();
+            try {
+                $redis
+                    ->hdel(
+                        $this->prefix . '.pending',
+                        $job
+                    )
+                    ->hincrby(
+                        'rjq.' . $job
+                        , 'try'
+                        , 1
+                    )
+                    ->hmset(
+                        'rjq.' . $job,
+                        array(
+                            'state' => 'error',
+                            'time' => time()
+                        )
+                    )->lpush(
+                        $this->prefix . '.queue', $job
+                    )->read()
+                ;
+            } catch(\Exception $pushEx) {
+                $this->log(
+                    'Error : possible loss of task #' . $job
+                );
+                if ( VERBOSE ) {
+                    $this->log(
+                        $pushEx->__toString()
+                    );
+                }
+            }
         }
+        $this->parent->parent->stats['counters']['fail'] ++;
     }
     // gets a new job
     public function getJob() {
-        return $this->getRedis(true)->rpop( $this->prefix . '.queue' )->read();
+        $redis = $this->getRedis(true);
+        $job = $redis->rpop( $this->prefix . '.queue' )->read();
+        if ( !empty($job) ) {
+            try {
+                $meta = array();
+                $props = $redis->hgetall('rjq.' . $job)->read();
+                for($i = count($props); $i > 0; $i -= 2) {
+                    $meta[$props[$i - 2]] = $props[$i - 1];
+                }
+                if ($meta['state'] == 'error') {
+                    if ( time() < $meta['time'] + $meta['try'] ) {
+                        $redis->lpush( $this->prefix . '.queue', $job )->read();
+                        return null;
+                    }
+                }
+                if ( $meta['state'] == 'error' || $meta['state'] == 'new') {
+                    return $meta;
+                } else {
+                    $this->log(
+                        'Notice : Job #' . $job
+                        . ' state is irrelevant : '
+                        . $meta['state']
+                    );
+                    return null;
+                }
+            } catch(\Exception $ex) {
+                $this->requeue($job);
+                throw $ex;
+            }
+        } else return null;
     }
 }
