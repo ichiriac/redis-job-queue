@@ -8,7 +8,7 @@
         {
             "name": "doSleep",
             "file": "./basic_worker.php",
-            "workers": 8
+            "workers": 100
         }
     ]
 }
