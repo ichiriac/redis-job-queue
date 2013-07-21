@@ -24,7 +24,11 @@ class JobManager {
         $this->parent = $parent;
         $this->prefix = $prefix;
         $this->limit = $limit;
-        $this->script = $file;
+        $script = realpath($file);
+        if ( !$script ) {
+            $script = realpath(dirname(realpath(CONFIG_FILE)) . '/' . $file);
+        }
+        $this->script = $script ? $script : $file;
         if ( !function_exists('event_base_new') ) {
             $this->log('Warning : You should install libevent as a PHP module');
         } else {
