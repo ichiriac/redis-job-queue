@@ -173,7 +173,7 @@ class JobManager {
                 }
             }
         }
-        $this->parent->parent->stats['counters']['fail'] ++;
+        $this->parent->stats['counters']['fail'] ++;
     }
     // gets a new job
     public function getJob() {
