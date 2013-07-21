@@ -1,4 +1,4 @@
-# RJQ (Redis Job Queue)
+# RJQ (Redis Job Queue) for PHP
 
 RJQ is a job queue manager based on Redis and PHP. It's really small, fault tolerant, and quite 
 simple to install and use.
@@ -18,7 +18,7 @@ You can find more information on the [Installation wiki page](https://github.com
 
 ## Launch a job with a script
 
-Write your job into a file (example : `/var/my-app/workers/sleep.php`) :
+Write your job into a file `/var/my-app/workers/sleep.php` :
 ```php
 <?php
 // This script is defines your job
@@ -28,7 +28,7 @@ function doSleep( $duration, $name ) {
 }
 ```
 
-Define the job on RJQ configuration (`/etc/rjq/config.json`) :
+Define the job on RJQ configuration `/etc/rjq/config.json` :
 ```json
 {
    ...
@@ -70,7 +70,7 @@ And `voilà` :)
 
 ## MIT License
 
-Copyright (C) <2012> <PHP Hacks Team : http://coderwall.com/team/php-hacks>
+Copyright (C) 2012 - Ioan CHIRIAC
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
