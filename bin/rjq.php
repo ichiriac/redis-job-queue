@@ -64,6 +64,7 @@ if ( !empty($_SERVER['Path']) ) {
     }
 }
 define('PHPBIN', $php_dir);
+define('VERBOSE', isset($args['verbose']));
 // handling options
 foreach( $args as $cmd => $arg) {
     switch( strtolower($cmd) ) {
@@ -108,6 +109,7 @@ foreach( $args as $cmd => $arg) {
             break;
         // configuration flags (ignored)
         case 'cli':
+        case 'verbose':
             break;
         // default : invalid command
         default:
