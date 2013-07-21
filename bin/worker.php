@@ -5,17 +5,26 @@
  * License. See README.MD for details.
  * @author Ioan CHIRIAC
  */
-$log = fopen(__DIR__ . '/server.txt', 'a+');
 $bootstrap = $_SERVER['bootstrap'];
 $action = $_SERVER['prefix'];
-fputs($log, 'Start ' . $action . ' at ' . date('Y-m-d H:i:s'). "\n");
-fputs($log, '>>> ' . $bootstrap . "\n");
+if ( !empty($_SERVER['verbose']) ) {
+    $log = fopen(__DIR__ . '/server.txt', 'a+');
+    define('VERBOSE', !empty($log) );
+} else {
+    define('VERBOSE', false);
+}
+VERBOSE && fputs($log, 'Start ' . $action . ' at ' . date('Y-m-d H:i:s'). "\n");
+VERBOSE && fputs($log, '>>> ' . $bootstrap . "\n");
+
 require $bootstrap;
+
 while( true ) {
     $size = trim(fgets(STDIN));
     if ( empty($size) ) {
-        echo 'wait' . "\n";
-        ob_flush();
+        if ( VERBOSE ) {
+            echo 'wait' . "\n";
+            ob_flush();
+        }
         usleep(1000);
         continue;
     }
@@ -24,10 +33,10 @@ while( true ) {
         exit(1);
     }
     $job = fread(STDIN, substr($size, 1));
-    fputs($log, 'job statement : ' . $job . "<<\n");
+    VERBOSE && fputs($log, 'job statement : ' . $job . "<<\n");
     $argSize = trim(fgets(STDIN));
     if ( $job === 'stop' ) {
-        fputs($log, 'required to stop ' . "\n");
+        VERBOSE && fputs($log, 'required to stop ' . "\n");
         die();
     }
     if ( empty($argSize) || $argSize[0] !== '$' ) {
@@ -35,18 +44,18 @@ while( true ) {
         exit(1);
     }
     $args = fread(STDIN, substr($argSize, 1));
-    fputs($log, 'args >' . $args . "<<\n");
+    VERBOSE && fputs($log, 'args >' . $args . "<<\n");
     ob_start();
     try {
         call_user_func_array($action, json_decode($args));
         ob_end_clean();
-        fputs($log, 'job is done ' . "\n");
+        VERBOSE && fputs($log, 'job is done ' . "\n");
         echo 'done' . "\n";
     } catch(\Exception $ex) {
         ob_end_clean();
-        fputs($log, 'job is fails ' . "\n");
-        fputs($log,  $ex->__toString());
-        echo 'fail' . "\n";
+        VERBOSE && fputs($log, 'job is fails ' . "\n");
+        VERBOSE && fputs($log,  $ex->__toString());
+        echo 'error' . "\n";
     }
 }
 exit(0);
