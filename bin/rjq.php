@@ -7,7 +7,6 @@
  */
 
 // reading command line args
-
 $args = array();
 for($i = 1; $i < $argc; $i++) {
     $arg = explode('=', ltrim($argv[$i], '-'), 2);
@@ -55,11 +54,13 @@ $php_dir = 'php' . (
     strtoupper(substr(PHP_OS, 0, 3)) === 'WIN' ?
     '.exe' : null
 );
-$scan = explode(';', $_SERVER['Path']);
-foreach($scan as $dir) {
-    if ( file_exists($dir . '/' . $php_dir) ) {
-        $php_dir = $dir . '/' . $php_dir;
-        break;
+if ( !empty($_SERVER['Path']) ) {
+    $scan = explode(';', $_SERVER['Path']);
+    foreach($scan as $dir) {
+        if ( file_exists($dir . '/' . $php_dir) ) {
+            $php_dir = $dir . '/' . $php_dir;
+            break;
+        }
     }
 }
 define('PHPBIN', $php_dir);
