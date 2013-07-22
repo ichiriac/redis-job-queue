@@ -46,6 +46,7 @@ class RedisClient
     protected $_stack = array();
     protected $_auth;
     protected $_db;
+    protected $_dsn;
 
     /**
      * Initialize a redis connection
@@ -56,6 +57,7 @@ class RedisClient
     {
         $this->_auth = $auth;
         $this->_db = $db;
+        $this->_dsn = $dsn;
     }
 
     /**
@@ -77,7 +79,7 @@ class RedisClient
             $code = null;
             $error = null;
             $this->_socket = @stream_socket_client(
-                $dsn, $code, $error, 1, STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT
+                $this->_dsn, $code, $error, 1, STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT
             );
             if ($this->_socket === false) {
                 $this->onConnectionError(
