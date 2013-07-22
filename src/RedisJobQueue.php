@@ -73,19 +73,23 @@ class RedisJobQueue {
     public function getRedis() {
         if ( !$this->redis ) {
             try {
+                $sender = $this;
                 $this->redis = new RedisClient(
                     $this->conf['server']['dsn'],
                     $this->conf['server']['db'],
                     $this->conf['server']['pwd']
                 );
+                $this->redis->onError = function($error) use($sender) {
+                    $this->log('Redis error : ' . $error);
+                    $sender->redis = null;
+                    // wait 1sec before retry
+                    $sender->wait(1000);
+                };
                 $this->redis->connect();
             } catch(\Exception $ex) {
                 $this->redis = null;
                 $this->log('Fail to load redis : ' . $this->conf['server']['dsn']);
-                $this->log('Redis error : ' . $ex->getMessage());
                 $this->stats['counters']['errors'] ++;
-                // wait 1sec before retry
-                $this->wait(1000);
                 return null;
             }
         }
