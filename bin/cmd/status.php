@@ -8,7 +8,7 @@ if ( empty($pid) ) {
     echo 'The RJQ service is NOT running' . "\n";
 } else {
     if ( posix_kill($pid, 0) ) { // only check the process
-        echo 'The RJQ service is running ...' . "\n";
+        echo 'The RJQ service is running ('.$pid.')...' . "\n";
     } else {
         echo 'WARNING : The RJQ process seems to be crashed (use --stop)' . "\n";
     }
