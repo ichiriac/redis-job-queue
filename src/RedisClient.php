@@ -86,13 +86,17 @@ class RedisClient
                     $error, $code
                 );
             }
+            $s = $this->_stack;
+            $this->_stack = array();
             if (!empty($this->_auth)) {
                 $this->__call('AUTH', array($this->_auth));
             }
             $this->__call('SELECT', array($this->_db));
             try {
                 $this->read();
+                $this->_stack = $s;
             } catch( ClientError $error ) {
+                $this->_stack = $s;
                 $this->onConnectionError(
                     'Unable to connect : ' . $error->getMessage()
                 );
@@ -228,6 +232,7 @@ class RedisClient
      */
     public function read()
     {
+        $this->getSocket();
         if (!empty($this->_stack))
             $this->flush();
         if ($this->_responses === 0) {
@@ -267,7 +272,7 @@ class RedisClient
         $blen = strlen($buffer);
         $fwrite = null;
         for ($written = 0; $written < $blen; $written += $fwrite) {
-            $fwrite = fwrite($this->getSocket(), substr($buffer, $written));
+            $fwrite = fwrite($this->_socket, substr($buffer, $written));
             if ($fwrite === false || $fwrite <= 0) {
                 $this->onClientIOError('Failed to write entire command to stream');
             }
@@ -296,7 +301,7 @@ class RedisClient
     protected function _write($command)
     {
         for ($written = 0; $written < strlen($command); $written += $fwrite) {
-            $fwrite = fwrite($this->getSocket(), substr($command, $written));
+            $fwrite = fwrite($this->_socket, substr($command, $written));
             if ($fwrite === FALSE || $fwrite <= 0) {
                 $this->onClientIOError(
                     'Failed to write entire command to stream'
@@ -314,12 +319,14 @@ class RedisClient
      */
     protected function _read()
     {
-        $reply = trim(fgets($this->getSocket(), 512));
-        if (empty($reply)) {
+        $reply = fgets($this->_socket, 512);
+        if ($reply === false) {
             $this->onClientIOError(
                 'Network error - unable to read header response'
             );
         }
+        $reply = trim($reply);
+        if ( empty($reply) ) return null;
         switch ($reply[0]) {
             case '+': // inline reply
                 $reply = substr($reply, 1);
