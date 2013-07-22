@@ -78,6 +78,7 @@ class RedisJobQueue {
                     $this->conf['server']['db'],
                     $this->conf['server']['pwd']
                 );
+                $this->redis->connect();
             } catch(\Exception $ex) {
                 $this->log('Fail to load redis : ' . $this->conf['server']['dsn']);
                 $this->log('Redis error : ' . $ex->getMessage());
@@ -172,10 +173,10 @@ class RedisJobQueue {
         $this->log('LOOP END : Wait to close each job queue');
         // wait each child to be stopped
         while(!empty($this->jobs)) {
-            foreach($this->jobs as &$job) {
+            foreach($this->jobs as $i => $job) {
                 if ( $job->clean() ) {
                     $this->log('The queue "'.$job->prefix.'" is closed');
-                    unset($job);
+                    unset($this->jobs[$i]);
                 }
             }
         }
@@ -184,14 +185,14 @@ class RedisJobQueue {
     public function stop() {
         if ( !empty($this->jobs) ) {
             $this->log('Forcing to stop job queue :');
-            foreach($this->jobs as $job) {
+            foreach($this->jobs as $j => $job) {
                 if ( !empty($job->workers) ) {
                     $busy = 0;
-                    foreach($job->workers as &$w) {
+                    foreach($job->workers as $i => $w) {
                         if ( $w->busy ) {
                             $busy ++;
                         }
-                        unset($w);
+                        unset($job->workers[$i]);
                     }
                     if ( $busy > 0 ) {
                         $this->log(
@@ -204,7 +205,7 @@ class RedisJobQueue {
                 } else {
                     $this->log('The queue "'.$job->prefix.'" is OK');
                 }
-                unset($job);
+                unset($this->jobs[$j]);
             }
         }
     }
