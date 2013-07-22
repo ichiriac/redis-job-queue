@@ -44,7 +44,13 @@ class JobManager {
     // stops all childs that not work
     public function clean() {
         foreach($this->workers as $i => $w) {
-            if ( !$w->busy ) unset($this->workers[$i]);
+            if ( !$w->busy ) {
+                unset($this->workers[$i]);
+            } elseif ( time() - $w->last_job > 600 ) {
+                $this->log('WARNING : kill timeout worker');
+                // run timeout
+                unset($this->workers[$i]);
+            }
         }
         return empty($this->workers);
     }
