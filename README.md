@@ -3,6 +3,19 @@
 RJQ is a job queue manager based on Redis and PHP. It's really small, fault tolerant, and quite 
 simple to install and use.
 
+## Functionnalities
+
+ * Simple to install and simple to start or track a task
+ * Get job server statistics from CLI and Redis
+ * Keep job histories during 1 hour
+ * Gracefull stop (wait tasks to finish)
+ * Clustering capabilities, jobs priorities
+ * Fault tolerant (redis crashes, job exceptions, php fatals)
+ * Retries after job crash (increment 1sec interval each try)
+ * Manage workers allocation depending the load
+ * Low task latency (50ms in average)
+ * Verbose mode for debug (can also be started from windows for DEVs) 
+
 ## Quick start (install it as a daemon)
 
 ```bash
