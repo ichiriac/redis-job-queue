@@ -17,15 +17,16 @@ VERBOSE && fputs($log, 'Start ' . $action . ' at ' . date('Y-m-d H:i:s'). "\n");
 VERBOSE && fputs($log, '>>> ' . $bootstrap . "\n");
 
 require $bootstrap;
+stream_set_blocking(STDIN, 1);
 
-while( true ) {
+// main worker loop
+while( !feof(STDIN) ) {
     $size = trim(fgets(STDIN));
     if ( empty($size) ) {
         if ( VERBOSE ) {
             echo 'wait' . "\n";
-            ob_flush();
         }
-        usleep(1000);
+        usleep(5000);
         continue;
     }
     if ( $size[0] !== '$' ) {
@@ -37,7 +38,7 @@ while( true ) {
     $argSize = trim(fgets(STDIN));
     if ( $job === 'stop' ) {
         VERBOSE && fputs($log, 'required to stop ' . "\n");
-        die();
+        exit(0);
     }
     if ( empty($argSize) || $argSize[0] !== '$' ) {
         fputs(STDERR, 'Bad protocol size : ' . $argSize . "\n" );
