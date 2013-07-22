@@ -50,6 +50,8 @@ class JobManager {
                 $this->log('WARNING : kill timeout worker');
                 // run timeout
                 unset($this->workers[$i]);
+            } else {
+                $w->dispatch();
             }
         }
         return empty($this->workers);
