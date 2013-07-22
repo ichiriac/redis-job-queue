@@ -80,6 +80,7 @@ class RedisJobQueue {
                 );
                 $this->redis->connect();
             } catch(\Exception $ex) {
+                $this->redis = null;
                 $this->log('Fail to load redis : ' . $this->conf['server']['dsn']);
                 $this->log('Redis error : ' . $ex->getMessage());
                 $this->stats['counters']['errors'] ++;
