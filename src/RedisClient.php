@@ -47,6 +47,7 @@ class RedisClient
     protected $_auth;
     protected $_db;
     protected $_dsn;
+    public $onError;
 
     /**
      * Initialize a redis connection
@@ -166,6 +167,9 @@ class RedisClient
      */
     protected function onError($type, $error, $code = 0)
     {
+        if ( $this->onError ) {
+            call_user_func_array($this->onError, array($error));
+        }
         throw new $type($error, $code);
     }
 
