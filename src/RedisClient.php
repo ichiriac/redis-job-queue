@@ -44,6 +44,8 @@ class RedisClient
     protected $_socket;
     protected $_responses = 0;
     protected $_stack = array();
+    protected $_auth;
+    protected $_db;
 
     /**
      * Initialize a redis connection
@@ -52,27 +54,8 @@ class RedisClient
      */
     public function __construct($dsn = 'tcp://localhost:6379', $db = 0, $auth = null)
     {
-        $code = null;
-        $error = null;
-        $this->_socket = @stream_socket_client(
-            $dsn, $code, $error, 1, STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT
-        );
-        if ($this->_socket === false) {
-            $this->onConnectionError(
-                $error, $code
-            );
-        }
-        if (!empty($auth)) {
-            $this->__call('AUTH', array($auth));
-        }
-        $this->__call('SELECT', array($db));
-        try {
-            $this->read();
-        } catch( ClientError $error ) {
-            $this->onConnectionError(
-                'Unable to connect : ' . $error->getMessage()
-            );
-        }
+        $this->_auth = $auth;
+        $this->_db = $db;
     }
 
     /**
@@ -83,10 +66,58 @@ class RedisClient
      */
     protected function onConnectionError($error, $code = 0)
     {
+        $this->close()->onError(ClientConnectionError::TYPE, $error, $code);
+    }
+
+    /**
+     * Process to the connection
+     */
+    public function connect() {
+        if ( !$this->_socket ) {
+            $code = null;
+            $error = null;
+            $this->_socket = @stream_socket_client(
+                $dsn, $code, $error, 1, STREAM_CLIENT_CONNECT | STREAM_CLIENT_PERSISTENT
+            );
+            if ($this->_socket === false) {
+                $this->onConnectionError(
+                    $error, $code
+                );
+            }
+            if (!empty($this->_auth)) {
+                $this->__call('AUTH', array($this->_auth));
+            }
+            $this->__call('SELECT', array($this->_db));
+            try {
+                $this->read();
+            } catch( ClientError $error ) {
+                $this->onConnectionError(
+                    'Unable to connect : ' . $error->getMessage()
+                );
+            }
+        }
+        return $this;
+    }
+
+    /**
+     * CLose the connection
+     */
+    protected function close() {
         if ($this->_socket) {
             fclose($this->_socket);
+            $this->_socket = null;
         }
-        $this->onError(ClientConnectionError::TYPE, $error, $code);
+        return $this;
+    }
+
+    /**
+     * Gets the socket stream (internal use)
+     */
+    protected function getSocket() {
+        if ( !$this->_socket ) {
+            $this->connect();
+        }
+        return $this->_socket;
     }
 
     /**
@@ -116,9 +147,7 @@ class RedisClient
      */
     protected function onClientIOError($error)
     {
-        if ($this->_socket) {
-            fclose($this->_socket);
-        }
+        $this->close();
         $this->onError(ClientIOError::TYPE, $error);
     }
 
@@ -236,7 +265,7 @@ class RedisClient
         $blen = strlen($buffer);
         $fwrite = null;
         for ($written = 0; $written < $blen; $written += $fwrite) {
-            $fwrite = fwrite($this->_socket, substr($buffer, $written));
+            $fwrite = fwrite($this->getSocket(), substr($buffer, $written));
             if ($fwrite === false || $fwrite <= 0) {
                 $this->onClientIOError('Failed to write entire command to stream');
             }
@@ -265,7 +294,7 @@ class RedisClient
     protected function _write($command)
     {
         for ($written = 0; $written < strlen($command); $written += $fwrite) {
-            $fwrite = fwrite($this->_socket, substr($command, $written));
+            $fwrite = fwrite($this->getSocket(), substr($command, $written));
             if ($fwrite === FALSE || $fwrite <= 0) {
                 $this->onClientIOError(
                     'Failed to write entire command to stream'
@@ -283,8 +312,8 @@ class RedisClient
      */
     protected function _read()
     {
-        $reply = trim(fgets($this->_socket, 512));
-        if ($reply === false) {
+        $reply = trim(fgets($this->getSocket(), 512));
+        if (empty($reply)) {
             $this->onClientIOError(
                 'Network error - unable to read header response'
             );
@@ -312,7 +341,7 @@ class RedisClient
                     $read = 0;
                     do {
                         $block_size = ($size - $read) > 1024 ? 1024 : ($size - $read);
-                        $r = fread($this->_socket, $block_size);
+                        $r = fread($this->getSocket(), $block_size);
                         if ($r === FALSE) {
                             $this->onClientIOError(
                                 'Failed to read bulk response from stream'
@@ -323,7 +352,7 @@ class RedisClient
                         }
                     } while ($read < $size);
                 }
-                fread($this->_socket, 2); /* discard crlf */
+                fread($this->getSocket(), 2); /* discard crlf */
                 return $reply;
                 break;
             case '*': // multi-bulk reply
