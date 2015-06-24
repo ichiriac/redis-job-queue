@@ -20,14 +20,14 @@ simple to install and use.
 
 ```bash
   mkdir /etc/rjq
-  git checkout https://github.com/ichiriac/redis-job-queue.git /etc/rjq
+  git checkout https://github.com/sergiula/redis-job-queue.git /etc/rjq
   cp /etc/rjq/bin/rjq_init /etc/init.d/rjq
   ln -s /etc/init.d/rjq /usr/local/bin/rjq
   sudo update-rc.d rjq defaults
   rjq --start
 ```
 
-You can find more information on the [Installation wiki page](https://github.com/ichiriac/redis-job-queue/wiki/Install)
+You can find more information on the [Installation wiki page](https://github.com/sergiula/redis-job-queue/wiki/Install)
 
 ## Launch a job with a script
 
@@ -56,7 +56,7 @@ Define the job on RJQ configuration `/etc/rjq/config.json` :
 }
 ```
 
-You can find more information on the [Configuration wiki page](https://github.com/ichiriac/redis-job-queue/wiki/Configuring-RJQ)
+You can find more information on the [Configuration wiki page](https://github.com/sergiula/redis-job-queue/wiki/Configuring-RJQ)
 
 **NOTE :** You need to restart RJQ after each configuration modification :
 
