@@ -18,7 +18,7 @@ if ( empty($config) ) {
 }
 // setting default timezone (avoid warnings)
 if ( ini_get('date.timezone') == '' ) {
-    date_default_timezone_set('Europe/Paris');
+    date_default_timezone_set('Asia/Yekaterinburg');
 }
 
 return $config;
