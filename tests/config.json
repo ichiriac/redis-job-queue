@@ -7,11 +7,11 @@
         ,"db":  0
         ,"pwd": null
     }
-    ,"jobs": [
+    , "jobs": [
         {
             "name": "doSleep",
-            "file": "./basic_worker.php",
-            "workers": 100
+            "file": "/path-to-the-file/sleep.php",
+            "workers": 2
         }
     ]
 }
